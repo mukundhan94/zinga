@@ -20,7 +20,14 @@ module.exports = {
           'vue-style-loader',
           'css-loader'
         ]
-      }
+      },    // IMAGES
+      {
+        test: /\.(jpg|png|gif)$/,
+        use: [{
+          loader: 'file-loader',
+          options: {}
+        }]
+      },
     ]
   },
   plugins: [

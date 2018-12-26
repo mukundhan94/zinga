@@ -1,33 +1,41 @@
 <template>
   <div>
-    Level: {{ snakeLevel }} <br/>
-    Score: {{ score }}
-    <v-grid v-bind="{size: grid_size, head, tail, food}" v-on="{turn}"></v-grid>
-    <button @click="reset">Restart</button>
-    <label v-if="gameIsOver" class="red">The game is over!</label>
+    <!-- Level: {{ snakeLevel }} <br/>
+    Score: {{ score }} -->
+    <v-grid v-bind="{size: grid_size, head, tail, food, prev_head, path}"
+      v-on="{turn, setPath, navigatePath}">
+    </v-grid>
+    <!-- <button @click="reset">Restart</button> -->
+    <!-- <label v-if="gameIsOver" class="red">The game is over!</label> -->
   </div>
 </template>
 
 <script>
 import Grid from "./Grid.vue";
 import getRandomInt from "../getRandomInt.js";
-import Vector2 from "../Vector2.js";
+import Frog from "../Frog.js";
+import { gameConfig } from '../_config.js';
 
-const getDefaultData = () => ({
-  grid_size: 20,
-  head: new Vector2(10, 10),
+// const initialFrogPosition = new Frog(0, 0);
+
+/** const gameConfig = {
+  grid_size: 10,
+  head: initialFrogPosition,
   direction: null,
   tail: [],
   gameIsOver: false,
   food: [],
-  score: 1
-});
+  score: 1,
+  prev_head: initialFrogPosition,
+  path: [initialFrogPosition],
+  path_head: initialFrogPosition
+}; **/
 
 export default {
   components: {
     "v-grid": Grid
   },
-  data: getDefaultData,
+  data: () => gameConfig,
   computed: {
     gameStarted() {
       return this.direction !== null;
@@ -67,22 +75,35 @@ export default {
       this.update();
     },
 
+    pathContainesCell(cell) {
+      return this.path.find(part => part.isEqual(cell))
+    },
+
+    setPath(direction) {
+      const _newPathHead = this.path_head.add(direction);
+      if (_newPathHead.isCellInsideGrid() && !this.pathContainesCell(_newPathHead)) {
+        this.path.push(_newPathHead);
+        this.path_head = _newPathHead; 
+      }
+    },
+
     move(direction) {
       const new_head = this.head.add(direction);
 
       // game over if bumped into a wall
       {
-        if (!new_head.isBetween(new Vector2(0), new Vector2(this.grid_size))) {
-          4;
-          this.onGameOver();
+        if (!new_head.isBetween(new Frog(0), new Frog(this.grid_size))) {
+          // can be enabled if end game on frog hitting the walls
+          // this.onGameOver();
           return;
         }
       }
 
       // actually move
       {
-        this.tail.push(this.head);
-        this.tail = this.tail.slice(-this.length);
+        // this.tail.push(this.head);
+        // this.tail = this.tail.slice(-this.length);
+        this.prev_head = this.head.clone();
         this.head = new_head;
       }
 
@@ -111,12 +132,26 @@ export default {
     spawnFood() {
       while (this.food.length < this.snakeLevel) {
         this.food.push(
-          new Vector2(
+          new Frog(
             getRandomInt(0, this.grid_size),
             getRandomInt(0, this.grid_size)
           )
         );
       }
+    },
+    navigatePath() {
+      const paths = this.path;
+      let pathLength = paths.length;
+      let currentPath = 0;
+      const pathNavigator = setInterval(() => {
+        if (currentPath < pathLength) {
+          this.prev_head = this.head.clone();
+          this.head = paths[currentPath].clone();
+          currentPath += 1;
+        } else {
+          clearInterval(pathNavigator);
+        }
+      }, 1000);
     },
     update() {
       if (this.gameRunning) {

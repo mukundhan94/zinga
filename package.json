@@ -4,8 +4,9 @@
   "description": "Snake written with vue and vue-p5",
   "private": true,
   "scripts": {
-    "dev": "webpack --mode development --watch",
-    "build": "webpack"
+    "dev": "webpack --mode development --watch && http-server dist/",
+    "build": "webpack",
+    "start": "http-server"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "css-loader": "^0.28.11",
+    "file-loader": "^3.0.1",
     "vue-loader": "^15.4.2",
     "vue-template-compiler": "^2.5.17",
     "webpack": "^4.20.2",
