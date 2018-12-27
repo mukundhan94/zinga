@@ -3,7 +3,7 @@
     <!-- <div><pre>size-{{size}}</pre></div><br/>
     <div><pre>head-{{head}}</pre></div><br/>
     <div><pre>tail-{{tail}}</pre></div><br/>
-    <div><pre>food-{{food}}</pre></div><br/> -->
+    <div><pre>rocks-{{rocks}}</pre></div><br/> -->
     <!-- <vue-p5 
         @sketch="sketch"
         @preload="preload"
@@ -23,6 +23,7 @@ import Frog from "../Frog.js";
 let  xpos, ypos; // Starting position of shape
 let  xspeed = 8; // Speed of the shape
 let  yspeed = 8; // Speed of the shape
+let  rotate = 0;
 
 export default {
   components: {
@@ -31,36 +32,37 @@ export default {
   data() {
     return {}
   },
-  props: ["size", "head", "tail", "food", "prev_head", "path"],
+  props: ["size", "head", "tail", "rocks", "prev_head", "path"],
   methods: {
-    setup(sketch) {
-      sketch.resizeCanvas(500, 500);
-      this.sketch = sketch;
-    },
-    preload(sketch) {
-      this.frogImage = sketch.loadImage("../assets/black_frog.png");
-    },
-    draw(sketch) {
+    drawCanvas(sketch) {
       sketch.background("lightgreen");
       // draw grid
       sketch.stroke("black");
       sketch.strokeWeight(0.1);
-
       for (let i = 0; i <= this.size; ++i) {
         // i-th diagonal junction
         const { topLeft: { x, y } } = this.gridToCanvas(sketch, new Frog(i));
         sketch.line(x, 0, x, sketch.height);
         sketch.line(0, y, sketch.width, y);
       }
-
-      // draw food
-      sketch.strokeWeight(0.5);
-      sketch.fill("yellow");
-      this.food.forEach(f => {
+    },
+    setup(sketch) {
+      sketch.createCanvas(500, 500);
+      sketch.rectMode(sketch.CENTER);
+      sketch.imageMode(sketch.CENTER);
+      this.sketch = sketch;
+    },
+    preload(sketch) {
+      this.frogImage = sketch.loadImage("../assets/black_frog.png");
+      this.rockImage = sketch.loadImage("../assets/black_frog.png");
+    },
+    drawRocksAndWaters(sketch) {
+      // draw rocks
+      sketch.strokeWeight(1);
+      this.rocks.forEach(f => {
         const cell = this.gridToCanvas(sketch, f);
-        sketch.rect(cell.topLeft.x, cell.topLeft.y, cell.size.x, cell.size.y);
+        sketch.rect(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
       });
-
       // draw tail
       sketch.strokeWeight(1);
       sketch.fill("lightblue");
@@ -68,45 +70,60 @@ export default {
         const cell = this.gridToCanvas(sketch, part);
         sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
       });
-
-      // drawing path for the frog
+    },
+    drawPath(sketch) {
       this.path.forEach(cellpath => {
         if (!cellpath.isEqual(this.head)) {
           const cell = this.gridToCanvas(sketch, cellpath);
           sketch.fill("orange");
-          sketch.rect(cell.topLeft.x, cell.topLeft.y, cell.size.x, cell.size.y);
+          sketch.rect(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
         }
       });
-
-      // draw head
+    },
+    drawCurrentFrogPosition(sketch) {
+      sketch.push();
       sketch.strokeWeight(1);
       sketch.fill("blue");
       const cell = this.gridToCanvas(sketch, this.head);
       const prevCell = this.gridToCanvas(sketch, this.prev_head);
-
       const {
         x_direction,
-        y_direction
+        y_direction,
+        facingAngle
       } = this.head.getMovingDirection(this.prev_head);
-      
       if (this.head.isEqual(this.prev_head)) {
-        xpos = cell.topLeft.x;
-        ypos = cell.topLeft.y;
+        xpos = cell.center.x;
+        ypos = cell.center.y;
       }
-
-      // // Update the position of the shape
-      if (xpos <= cell.topLeft.x || ypos <= cell.topLeft.y) {
-        if (x_direction) {
-          xpos = xpos + 1;
+      // Animate frog position. Update the position of the shape
+      if (xpos !== cell.center.x || ypos !== cell.center.y) {
+        if (x_direction !== 0) {
+          xpos = xpos + x_direction;
         } else {
-          ypos = ypos + 1;
+          ypos = ypos + y_direction;
         }
+        sketch.scale(1.05);
+      } else {
+        sketch.scale(1);
       }
-      console.log('PI',sketch.PI, sketch);
-      sketch.image(this.frogImage, xpos, ypos, cell.size.x, cell.size.y);
-      sketch.rotate(sketch.PI / 3.0);
-      // sketch.image(this.frogImage, cell.topLeft.x, cell.topLeft.y, cell.size.x, cell.size.y);
-      // sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
+      if (rotate !== facingAngle) {
+        rotate = rotate > facingAngle ?
+         rotate -= 10 : 
+         rotate += 10;
+      }
+      sketch.translate(xpos, ypos);
+      sketch.rotate(sketch.radians(rotate));
+      sketch.image(this.frogImage, 0, 0, cell.size.x, cell.size.y);
+      sketch.pop();
+    },
+    draw(sketch) {
+      this.drawCanvas(sketch);
+      // draw rocks and tails. not added as of now.
+      this.drawRocksAndWaters(sketch);
+      // drawing path for the frog
+      this.drawPath(sketch);
+      // draw head
+      this.drawCurrentFrogPosition(sketch);
     },
 
     keypressed({ keyCode }) {
@@ -117,7 +134,7 @@ export default {
         68: new Frog(1, 0), // 'd' key
       };
       if (keyCode in keys) {
-        this.$emit("setPath", keys[keyCode]);
+        this.$emit("addCellToPath", keys[keyCode]);
         // this.$emit("turn", keys[keyCode]);
       } else if (keyCode === 13) {
         this.$emit("navigatePath");
@@ -128,10 +145,10 @@ export default {
       const topLeft = position;
       const center = position.add(new Frog(0.5));
       const bottomRight = position.add(new Frog(1));
-
-      const toCanvas = ({ x, y }) =>
-        new Frog(x * width / this.size, y * height / this.size);
-
+      const toCanvas = ({ x, y }) => new Frog(
+        x * width / this.size,
+        y * height / this.size
+      );
       return {
         topLeft: toCanvas(topLeft),
         center: toCanvas(center),

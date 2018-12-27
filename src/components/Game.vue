@@ -2,8 +2,8 @@
   <div>
     <!-- Level: {{ snakeLevel }} <br/>
     Score: {{ score }} -->
-    <v-grid v-bind="{size: grid_size, head, tail, food, prev_head, path}"
-      v-on="{turn, setPath, navigatePath}">
+    <v-grid v-bind="{size: grid_size, head, tail, rocks, prev_head, path}"
+      v-on="{turn, addCellToPath, navigatePath}">
     </v-grid>
     <!-- <button @click="reset">Restart</button> -->
     <!-- <label v-if="gameIsOver" class="red">The game is over!</label> -->
@@ -24,7 +24,7 @@ import { gameConfig } from '../_config.js';
   direction: null,
   tail: [],
   gameIsOver: false,
-  food: [],
+  rocks: [],
   score: 1,
   prev_head: initialFrogPosition,
   path: [initialFrogPosition],
@@ -79,17 +79,16 @@ export default {
       return this.path.find(part => part.isEqual(cell))
     },
 
-    setPath(direction) {
+    addCellToPath(direction) {
       const _newPathHead = this.path_head.add(direction);
       if (_newPathHead.isCellInsideGrid() && !this.pathContainesCell(_newPathHead)) {
         this.path.push(_newPathHead);
         this.path_head = _newPathHead; 
       }
     },
-
+  
     move(direction) {
       const new_head = this.head.add(direction);
-
       // game over if bumped into a wall
       {
         if (!new_head.isBetween(new Frog(0), new Frog(this.grid_size))) {
@@ -115,13 +114,13 @@ export default {
         }
       }
 
-      // eat food
+      // eat rocks
       {
         let f;
-        if ((f = this.food.find(f => f.isEqual(this.head)))) {
+        if ((f = this.rocks.find(f => f.isEqual(this.head)))) {
           this.score += 1;
-          let index = this.food.indexOf(f);
-          this.food.splice(index, 1);
+          let index = this.rocks.indexOf(f);
+          this.rocks.splice(index, 1);
         }
       }
     },
@@ -130,8 +129,8 @@ export default {
       this.$emit("game-over", this.record);
     },
     spawnFood() {
-      while (this.food.length < this.snakeLevel) {
-        this.food.push(
+      while (this.rocks.length < this.snakeLevel) {
+        this.rocks.push(
           new Frog(
             getRandomInt(0, this.grid_size),
             getRandomInt(0, this.grid_size)
@@ -140,13 +139,14 @@ export default {
       }
     },
     navigatePath() {
-      const paths = this.path;
+      const paths = this.path.map(data => data.clone());
       let pathLength = paths.length;
       let currentPath = 0;
       const pathNavigator = setInterval(() => {
         if (currentPath < pathLength) {
           this.prev_head = this.head.clone();
           this.head = paths[currentPath].clone();
+          this.path.splice(0, 1);
           currentPath += 1;
         } else {
           clearInterval(pathNavigator);

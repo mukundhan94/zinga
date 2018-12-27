@@ -1,13 +1,11 @@
-import primaryFrog from '../assets/green_frog.png';
-import secondaryFrog from '../assets/green_frog.png';
+import primaryFrog from '../assets/black_frog.png';
 
 export const initialConfig = {
   grid_size: 10,
   direction: null,
   tail: [],
   gameIsOver: false,
-  food: [],
+  rocks: [],
   score: 1,
-  primaryFrog,
-  secondaryFrog
+  primaryFrog
 };
