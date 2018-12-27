@@ -20,10 +20,22 @@
 <script>
 import VueP5 from "vue-p5";
 import Frog from "../Frog.js";
+let called = false;
+const throttle = (func, timeout) => {
+  if (!called) {
+    called = true;
+    setTimeout(() => {
+      called = false;
+      func.apply(this);
+    }, timeout);
+  }
+}
+
 let  xpos, ypos; // Starting position of shape
 let  xspeed = 8; // Speed of the shape
 let  yspeed = 8; // Speed of the shape
 let  rotate = 0;
+let rock_rotate_angle = 0;
 
 export default {
   components: {
@@ -32,7 +44,8 @@ export default {
   data() {
     return {}
   },
-  props: ["size", "head", "tail", "rocks", "prev_head", "path"],
+  props: ["size", "head", "tail", "rocks", "prev_head", "path", 
+    "grid_size","canvasResolution", "cellAspectRatio"],
   methods: {
     drawCanvas(sketch) {
       sketch.background("lightgreen");
@@ -47,22 +60,31 @@ export default {
       }
     },
     setup(sketch) {
-      sketch.createCanvas(500, 500);
+      sketch.createCanvas(this.canvasResolution, this.canvasResolution);
       sketch.rectMode(sketch.CENTER);
       sketch.imageMode(sketch.CENTER);
       this.sketch = sketch;
     },
     preload(sketch) {
       this.frogImage = sketch.loadImage("../assets/black_frog.png");
-      this.rockImage = sketch.loadImage("../assets/black_frog.png");
+      this.rock = sketch.loadImage("../assets/rock_1.png");
+      this.stone = sketch.loadImage("../assets/rock_2.png");
     },
     drawRocksAndWaters(sketch) {
       // draw rocks
       sketch.strokeWeight(1);
-      this.rocks.forEach(f => {
-        const cell = this.gridToCanvas(sketch, f);
-        sketch.rect(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
+      this.rocks.forEach(r => {
+        sketch.push();
+        const cell = this.gridToCanvas(sketch, r);
+        sketch.translate(cell.center.x, cell.center.y);
+        sketch.rotate(sketch.radians(rock_rotate_angle));
+        sketch.scale(0.6);
+        sketch.image(r.isPositionOdd() ? this.rock : this.stone, 0, 0, cell.size.x, cell.size.y);
+        rock_rotate_angle += 0.1;
+        sketch.pop();
       });
+
+      sketch.push();
       // draw tail
       sketch.strokeWeight(1);
       sketch.fill("lightblue");
@@ -70,6 +92,7 @@ export default {
         const cell = this.gridToCanvas(sketch, part);
         sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
       });
+      sketch.pop();
     },
     drawPath(sketch) {
       this.path.forEach(cellpath => {
@@ -98,9 +121,9 @@ export default {
       // Animate frog position. Update the position of the shape
       if (xpos !== cell.center.x || ypos !== cell.center.y) {
         if (x_direction !== 0) {
-          xpos = xpos + x_direction;
+          xpos = xpos + (this.cellAspectRatio / 2) * x_direction;
         } else {
-          ypos = ypos + y_direction;
+          ypos = ypos + (this.cellAspectRatio / 2) * y_direction;
         }
         sketch.scale(1.05);
       } else {
@@ -108,8 +131,8 @@ export default {
       }
       if (rotate !== facingAngle) {
         rotate = rotate > facingAngle ?
-         rotate -= 10 : 
-         rotate += 10;
+         rotate -= (this.cellAspectRatio / 2) : 
+         rotate += (this.cellAspectRatio / 2);
       }
       sketch.translate(xpos, ypos);
       sketch.rotate(sketch.radians(rotate));
@@ -127,18 +150,20 @@ export default {
     },
 
     keypressed({ keyCode }) {
-      const keys = {
-        87: new Frog(0, -1), // 'w' key
-        65: new Frog(-1, 0), // 'a' key
-        83: new Frog(0, 1), // 's' key
-        68: new Frog(1, 0), // 'd' key
-      };
-      if (keyCode in keys) {
-        this.$emit("addCellToPath", keys[keyCode]);
-        // this.$emit("turn", keys[keyCode]);
-      } else if (keyCode === 13) {
-        this.$emit("navigatePath");
-      }
+      throttle(() => {
+        const keys = {
+          87: new Frog(0, -1), // 'w' key
+          65: new Frog(-1, 0), // 'a' key
+          83: new Frog(0, 1), // 's' key
+          68: new Frog(1, 0), // 'd' key
+        };
+        if (keyCode in keys) {
+          // this.$emit("addCellToPath", keys[keyCode]);
+          this.$emit("turn", keys[keyCode]);
+        } else if (keyCode === 13) {
+          this.$emit("navigatePath");
+        }
+      }, 200);
     },
     
     gridToCanvas({ width, height }, position) {

@@ -7,5 +7,7 @@ export const initialConfig = {
   gameIsOver: false,
   rocks: [],
   score: 1,
+  rockSprinkleCount: 30,
+  canvasResolution: 600,
   primaryFrog
 };

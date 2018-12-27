@@ -2,7 +2,7 @@
   <div>
     <!-- Level: {{ snakeLevel }} <br/>
     Score: {{ score }} -->
-    <v-grid v-bind="{size: grid_size, head, tail, rocks, prev_head, path}"
+    <v-grid v-bind="{canvasResolution, cellAspectRatio, size: grid_size, head, tail, rocks, prev_head, path}"
       v-on="{turn, addCellToPath, navigatePath}">
     </v-grid>
     <!-- <button @click="reset">Restart</button> -->
@@ -15,8 +15,6 @@ import Grid from "./Grid.vue";
 import getRandomInt from "../getRandomInt.js";
 import Frog from "../Frog.js";
 import { gameConfig } from '../_config.js';
-
-// const initialFrogPosition = new Frog(0, 0);
 
 /** const gameConfig = {
   grid_size: 10,
@@ -35,7 +33,11 @@ export default {
   components: {
     "v-grid": Grid
   },
-  data: () => gameConfig,
+  data: () => gameConfig, 
+  mounted() {
+    this.spawnRocks();
+    // setInterval(this.update, 500);
+  }, 
   computed: {
     gameStarted() {
       return this.direction !== null;
@@ -49,6 +51,9 @@ export default {
     length() {
       return this.score;
     },
+    cellAspectRatio() {
+      return (this.canvasResolution / this.grid_size);
+    },
     record() {
       return {
         level: this.snakeLevel,
@@ -56,13 +61,9 @@ export default {
       };
     }
   },
+
   methods: {
-
     turn(direction) {
-      if (this.gameIsOver) {
-        return;
-      }
-
       if (this.tail.length > 0) {
         const first_tail_part = this.tail.slice(-1)[0];
         const new_head = this.head.add(direction);
@@ -70,7 +71,6 @@ export default {
           return;
         }
       }
-
       this.direction = direction.clone();
       this.update();
     },
@@ -79,9 +79,14 @@ export default {
       return this.path.find(part => part.isEqual(cell))
     },
 
+    rocksContainesCell(cell) {
+      return this.rocks.find(part => part.isEqual(cell))
+    },
+
     addCellToPath(direction) {
       const _newPathHead = this.path_head.add(direction);
-      if (_newPathHead.isCellInsideGrid() && !this.pathContainesCell(_newPathHead)) {
+      if (_newPathHead.isCellInsideGrid() && !this.pathContainesCell(_newPathHead)
+        && !this.rocksContainesCell(_newPathHead)) {
         this.path.push(_newPathHead);
         this.path_head = _newPathHead; 
       }
@@ -114,7 +119,7 @@ export default {
         }
       }
 
-      // eat rocks
+      // hit rocks
       {
         let f;
         if ((f = this.rocks.find(f => f.isEqual(this.head)))) {
@@ -128,8 +133,9 @@ export default {
       this.gameIsOver = true;
       this.$emit("game-over", this.record);
     },
-    spawnFood() {
-      while (this.rocks.length < this.snakeLevel) {
+    
+    spawnRocks() {
+      while (this.rocks.length < this.rockSprinkleCount) {
         this.rocks.push(
           new Frog(
             getRandomInt(0, this.grid_size),
@@ -151,20 +157,16 @@ export default {
         } else {
           clearInterval(pathNavigator);
         }
-      }, 1000);
+      }, 500);
     },
     update() {
       if (this.gameRunning) {
         this.move(this.direction);
       }
-      this.spawnFood();
     },
     reset() {
       Object.assign(this.$data, getDefaultData());
     }
-  },
-  mounted() {
-    // setInterval(this.update, 500);
   }
 };
 </script>

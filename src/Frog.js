@@ -17,6 +17,10 @@ export default class Frog {
     Object.freeze(this.image);
   }
 
+  isPositionOdd() {
+    return this.x % 2 === 0;
+  }
+
   add(that) {
     return new Frog(
       this.x + that.x,
