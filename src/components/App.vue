@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- <v-game @game-over="onGameOver"></v-game> -->
-    <v-picircle/>
+    <v-game @game-over="onGameOver"></v-game>
+    <!-- <v-picircle/> -->
     <!-- <v-ballcollide></v-ballcollide> -->
     <!-- <v-save v-if="gameResult"></v-save> -->
     <!-- <v-leaderboard></v-leaderboard> -->

@@ -2,7 +2,17 @@
   <div>
     <!-- Level: {{ snakeLevel }} <br/>
     Score: {{ score }} -->
-    <v-grid v-bind="{canvasResolution, cellAspectRatio, size: grid_size, head, tail, rocks, prev_head, path}"
+    <v-grid v-bind="{
+        butterflies,
+        canvasResolution,
+        cellAspectRatio,
+        size: grid_size,
+        head,
+        tail,
+        rocks,
+        prev_head,
+        path
+      }"
       v-on="{turn, addCellToPath, navigatePath}">
     </v-grid>
     <!-- <button @click="reset">Restart</button> -->
@@ -14,6 +24,7 @@
 import Grid from "./Grid.vue";
 import getRandomInt from "../getRandomInt.js";
 import Frog from "../Frog.js";
+import Butterfly from "../Butterfly.js";
 import { gameConfig } from '../_config.js';
 
 /** const gameConfig = {
@@ -36,6 +47,7 @@ export default {
   data: () => gameConfig, 
   mounted() {
     this.spawnRocks();
+    this.spawnButterflies();
     // setInterval(this.update, 500);
   }, 
   computed: {
@@ -142,6 +154,17 @@ export default {
             getRandomInt(0, this.grid_size)
           )
         );
+      }
+    },
+    spawnButterflies() {
+      while (this.butterflies.length < this.butterflyCount) {
+        const butterfly = new Butterfly(
+            getRandomInt(0, this.grid_size),
+            getRandomInt(0, this.grid_size)
+        );
+        if (!this.rocksContainesCell(butterfly)) {
+          this.butterflies.push(butterfly);
+        }
       }
     },
     navigatePath() {

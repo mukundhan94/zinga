@@ -6,8 +6,11 @@ export const initialConfig = {
   tail: [],
   gameIsOver: false,
   rocks: [],
+  butterflies: [],
+  ponds: [],
   score: 1,
   rockSprinkleCount: 30,
+  butterflyCount: 10,
   canvasResolution: 600,
   primaryFrog
 };

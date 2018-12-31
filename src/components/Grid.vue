@@ -20,7 +20,10 @@
 <script>
 import VueP5 from "vue-p5";
 import Frog from "../Frog.js";
+import Butterfly from "../Butterfly.js";
+
 let called = false;
+
 const throttle = (func, timeout) => {
   if (!called) {
     called = true;
@@ -36,6 +39,9 @@ let  xspeed = 8; // Speed of the shape
 let  yspeed = 8; // Speed of the shape
 let  rotate = 0;
 let rock_rotate_angle = 0;
+let butterflyPaths = {
+
+};
 
 export default {
   components: {
@@ -44,19 +50,25 @@ export default {
   data() {
     return {}
   },
-  props: ["size", "head", "tail", "rocks", "prev_head", "path", 
-    "grid_size","canvasResolution", "cellAspectRatio"],
+  props: [
+    "butterflies",
+    "size",
+    "head",
+    "tail",
+    "rocks",
+    "prev_head",
+    "path", 
+    "grid_size",
+    "canvasResolution",
+    "cellAspectRatio"
+  ],
   methods: {
     drawCanvas(sketch) {
-      sketch.background("lightgreen");
-      // draw grid
-      sketch.stroke("black");
-      sketch.strokeWeight(0.1);
       for (let i = 0; i <= this.size; ++i) {
-        // i-th diagonal junction
-        const { topLeft: { x, y } } = this.gridToCanvas(sketch, new Frog(i));
-        sketch.line(x, 0, x, sketch.height);
-        sketch.line(0, y, sketch.width, y);
+        for (let j = 0; j <= this.size; ++j) {
+          const { center: { x, y }, size } = this.gridToCanvas(sketch, new Frog(i, j));
+          sketch.image(this.grass, x, y, size.x, size.y);
+        }
       }
     },
     setup(sketch) {
@@ -69,6 +81,10 @@ export default {
       this.frogImage = sketch.loadImage("../assets/black_frog.png");
       this.rock = sketch.loadImage("../assets/rock_1.png");
       this.stone = sketch.loadImage("../assets/rock_2.png");
+      this.grass = sketch.loadImage("../assets/grass.jpeg");
+      this.butterFlyBlue = sketch.loadImage("../assets/butterfly_blue.png");
+      this.butterFlyPink = sketch.loadImage("../assets/butterfly_pink.png");
+      this.butterFlyRed = sketch.loadImage("../assets/butterfly_red.png");
     },
     drawRocksAndWaters(sketch) {
       // draw rocks
@@ -83,7 +99,6 @@ export default {
         rock_rotate_angle += 0.1;
         sketch.pop();
       });
-
       sketch.push();
       // draw tail
       sketch.strokeWeight(1);
@@ -102,6 +117,36 @@ export default {
           sketch.rect(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
         }
       });
+    },
+    drawButterFlies(sketch) {
+      // draw rocks
+      sketch.strokeWeight(1);
+      this.butterflies.forEach((b, index) => {
+        sketch.push();
+        const cell = this.gridToCanvas(sketch, b);
+        const oldPath = butterflyPaths[`b${index}`] || {
+          tx: cell.center.x,
+          ty: cell.center.y
+        };
+        const { tx, ty } = b.translateTo(tx, ty);
+        butterflyPaths[`b${index}`] = { tx, ty };
+        sketch.translate(cell.center.x, cell.center.y);
+        // sketch.rotate(sketch.radians(rock_rotate_angle));
+        sketch.scale(0.6);
+        sketch.image(b.isPositionOdd() ? this.butterFlyBlue : this.butterFlyPink, 0, 0, cell.size.x, cell.size.y);
+        rock_rotate_angle += 0.1;
+        sketch.pop();
+      });
+
+      sketch.push();
+      // draw tail
+      sketch.strokeWeight(1);
+      sketch.fill("lightblue");
+      this.tail.forEach(part => {
+        const cell = this.gridToCanvas(sketch, part);
+        sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
+      });
+      sketch.pop();
     },
     drawCurrentFrogPosition(sketch) {
       sketch.push();
@@ -147,6 +192,8 @@ export default {
       this.drawPath(sketch);
       // draw head
       this.drawCurrentFrogPosition(sketch);
+      // draw butterflies
+      this.drawButterFlies(sketch);
     },
 
     keypressed({ keyCode }) {
@@ -191,5 +238,6 @@ export default {
     display: flex;
     justify-content: center;
     align-self: center;
+    background: antiquewhite;
   }
 </style>
