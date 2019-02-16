@@ -7,7 +7,6 @@ function setup() {
   s = new Frog();
   frameRate(10);
   pickLocation();
-
 }
 
 function pickLocation() {

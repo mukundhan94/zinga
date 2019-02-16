@@ -162,6 +162,7 @@ export default {
             getRandomInt(0, this.grid_size),
             getRandomInt(0, this.grid_size)
         );
+        butterfly.fly();
         if (!this.rocksContainesCell(butterfly)) {
           this.butterflies.push(butterfly);
         }

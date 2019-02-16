@@ -10,7 +10,7 @@ export const initialConfig = {
   ponds: [],
   score: 1,
   rockSprinkleCount: 30,
-  butterflyCount: 10,
+  butterflyCount: 1,
   canvasResolution: 600,
   primaryFrog
 };

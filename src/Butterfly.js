@@ -11,11 +11,54 @@ export default class Butterfly {
        -2 -> Bottom
     **/
     this.facingAngle = 90;
+    this.color = this.getRandomColor();
+    this.flying = false;
+    this.oldPath = {
+      x: this.x,
+      y: this.y
+    };
     Object.freeze(this.grid_size);
   }
 
   isPositionOdd() {
     return this.x % 2 === 0;
+  }
+
+  getRandomColor() {
+    const randomNumber = Math.floor(2* Math.random());
+    return randomNumber ? 'red' : 'blue';
+  }
+  
+  fly() {
+    this.flying = true;
+    const flyingInterval = setInterval(() => {
+      if (this.flying) { 
+        const randomIncrement = getRandomInt(-2, 2);
+        let direction =  {
+          x: this.x,
+          y: this.y
+        };
+        if (randomIncrement > 0) {
+          direction['x'] += randomIncrement;
+        } else {
+          direction['y'] += randomIncrement;
+        }
+        this.moveTo(direction);
+      } else {
+        clearInterval(flyingInterval);
+      }
+    }, 2000);
+  }
+
+  moveTo({ x, y }) {
+    if(new Butterfly(x, y).isCellInsideGrid()) {
+      this.oldPath = {
+        x: this.x,
+        y: this.y
+      };
+      this.x = x;
+      this.y = y;
+    }
   }
 
   add(that) {
@@ -34,6 +77,7 @@ export default class Butterfly {
   }
 
   getMovingDirection({x,y}) {
+    console.log('getMovingDirection', {x,y}, {x: this.x, y: this.y});
     let direction =  {
       x_direction: this.x > x ? 1 : this.x < x ? -1 : 0,
       y_direction: this.y > y ? 1 : this.y < y ? -1 : 0
