@@ -22,7 +22,7 @@
 
 <script>
 import Grid from "./Grid.vue";
-import getRandomInt from "../getRandomInt.js";
+import { getRandomInt } from "../utils.js";
 import Frog from "../Frog.js";
 import Butterfly from "../Butterfly.js";
 import { gameConfig } from '../_config.js';
@@ -76,12 +76,15 @@ export default {
 
   methods: {
     turn(direction) {
+      const new_head = this.head.add(direction);
       if (this.tail.length > 0) {
         const first_tail_part = this.tail.slice(-1)[0];
-        const new_head = this.head.add(direction);
         if (new_head.isEqual(first_tail_part)) {
           return;
         }
+      }
+      if (this.rocksContainesCell(new_head)) {
+        return;
       }
       this.direction = direction.clone();
       this.update();
@@ -131,13 +134,13 @@ export default {
         }
       }
 
-      // hit rocks
+      // eat butterflies
       {
         let f;
-        if ((f = this.rocks.find(f => f.isEqual(this.head)))) {
+        if ((f = this.butterflies.find(f => f.isEqual(this.head)))) {
           this.score += 1;
-          let index = this.rocks.indexOf(f);
-          this.rocks.splice(index, 1);
+          let index = this.butterflies.indexOf(f);
+          this.butterflies.splice(index, 1);
         }
       }
     },

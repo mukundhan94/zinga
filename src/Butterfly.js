@@ -1,5 +1,5 @@
 import { initialConfig } from './_initialConfig';
-import getRandomInt from "./getRandomInt.js";
+import { getRandomDirection } from "./utils.js";
 export default class Butterfly {
   constructor(x, y=x) {
     this.x = x;
@@ -31,23 +31,24 @@ export default class Butterfly {
   
   fly() {
     this.flying = true;
-    const flyingInterval = setInterval(() => {
-      if (this.flying) { 
-        const randomIncrement = getRandomInt(-2, 2);
+    const move = () => {
+      const [x, y] = getRandomDirection(-2, 2);
         let direction =  {
           x: this.x,
           y: this.y
         };
-        if (randomIncrement > 0) {
-          direction['x'] += randomIncrement;
-        } else {
-          direction['y'] += randomIncrement;
-        }
+        direction['x'] += x;
+        direction['y'] += y;
         this.moveTo(direction);
+    };
+    move();
+    const flyingInterval = setInterval(() => {
+      if (this.flying) { 
+        move();
       } else {
         clearInterval(flyingInterval);
       }
-    }, 2000);
+    }, 1000);
   }
 
   moveTo({ x, y }) {
@@ -77,12 +78,11 @@ export default class Butterfly {
   }
 
   getMovingDirection({x,y}) {
-    console.log('getMovingDirection', {x,y}, {x: this.x, y: this.y});
     let direction =  {
       x_direction: this.x > x ? 1 : this.x < x ? -1 : 0,
       y_direction: this.y > y ? 1 : this.y < y ? -1 : 0
     }
-    direction.facingAngle = this.setFacingDirection(direction);
+    direction.facingAngle = this.getFacingDirectionByRelativePos(direction);
     return direction;
   }
 
@@ -105,6 +105,30 @@ export default class Butterfly {
 
   isCellInsideGrid() {
     return this.isBetween(new Butterfly(0), new Butterfly(this.grid_size))
+  }
+
+  getFacingDirectionByRelativePos(direction) {
+    /**
+     * [-1  1 , 0  1 , 1  1]
+     * [-1  0 , 0  0 , 1  0]
+     * [-1 -1 , 0 -1 , 1 -1]
+     */
+    const anglesByRelativePos = {
+      '-11': 225,
+      '-10': 180,
+      '-1-1': 135,
+      '01': 90,
+      '00': 0,
+      '0-1': 270,
+      '11': 45,
+      '10': 0,
+      '1-1': 360
+    };
+    const { x_direction, y_direction } = direction;
+    /**if (anglesByRelativePos[`${x_direction}${y_direction}`]) {
+      return anglesByRelativePos[`${x_direction}${y_direction}`];
+    } */
+    return this.setFacingDirection(direction);
   }
 
   setFacingDirection(direction) {

@@ -9,8 +9,8 @@ export const initialConfig = {
   butterflies: [],
   ponds: [],
   score: 1,
-  rockSprinkleCount: 30,
-  butterflyCount: 1,
-  canvasResolution: 600,
+  rockSprinkleCount: 10,
+  butterflyCount: 10,
+  canvasResolution: 900,
   primaryFrog
 };

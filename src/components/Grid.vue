@@ -94,7 +94,7 @@ export default {
         sketch.push();
         const cell = this.gridToCanvas(sketch, r);
         sketch.translate(cell.center.x, cell.center.y);
-        sketch.rotate(sketch.radians(rock_rotate_angle));
+        // sketch.rotate(sketch.radians(rock_rotate_angle));
         sketch.scale(0.6);
         sketch.image(r.isPositionOdd() ? this.rock : this.stone, 0, 0, cell.size.x, cell.size.y);
         rock_rotate_angle += 0.1;
@@ -138,19 +138,15 @@ export default {
           y_direction,
           facingAngle
         } = b.getMovingDirection(b.oldPath);
-        if (!b.isEqual(oldPath)) {
-          // console.log('oldPath, cell, x_direction, y_direction, facingAngle', { oldPath, cell, x_direction, y_direction, facingAngle });
-          if (x_direction !== 0) {
-            butterflyPaths[`b${index}`]['xpos'] = butterflyPaths[`b${index}`]['xpos'] + 0.03 * (this.cellAspectRatio / 2) * x_direction;
-          } else {
-            butterflyPaths[`b${index}`]['ypos'] = butterflyPaths[`b${index}`]['ypos'] + 0.03 * (this.cellAspectRatio / 2) * y_direction;
-          }
-          if (butterflyPaths[`b${index}`]['xpos']%2) {
-            sketch.scale(0.6);
-          } else {
-            sketch.scale(0.8);
-          }
+        const { xpos, ypos } = butterflyPaths[`b${index}`];
+        if (!(cell.center.x == xpos && cell.center.y == ypos)) {
+          butterflyPaths[`b${index}`]['xpos'] = butterflyPaths[`b${index}`]['xpos'] + x_direction;
+          butterflyPaths[`b${index}`]['ypos'] = butterflyPaths[`b${index}`]['ypos'] + y_direction;
           if (butterflyPaths[`b${index}`]['rotate'] !== facingAngle) {
+            if (!butterflyPaths[`b${index}`]['rotate']) {
+              const samePlace = b.getMovingDirection(b.oldPath);
+              butterflyPaths[`b${index}`]['rotate'] = samePlace.facingAngle;
+            }
             butterflyPaths[`b${index}`]['rotate'] = butterflyPaths[`b${index}`]['rotate'] > facingAngle ?
             butterflyPaths[`b${index}`]['rotate'] -= (this.cellAspectRatio / 2) : 
             butterflyPaths[`b${index}`]['rotate'] += (this.cellAspectRatio / 2);
@@ -163,9 +159,14 @@ export default {
             ypos: cell.center.y
           }
         }
+        if ((butterflyPaths[`b${index}`]['xpos'] + butterflyPaths[`b${index}`]['ypos']) % 0.5) {
+          sketch.scale(0.6);
+        } else {
+          sketch.scale(0.6);
+        }
         sketch.translate(butterflyPaths[`b${index}`]['xpos'],butterflyPaths[`b${index}`]['ypos']);
-        sketch.image(this[b.color], 0, 0, cell.size.x, cell.size.y);
         sketch.rotate(sketch.radians(butterflyPaths[`b${index}`]['rotate']));
+        sketch.image(this[b.color], 0, 0, cell.size.x, cell.size.y);
         sketch.pop();
       });
     },
@@ -208,7 +209,7 @@ export default {
     draw(sketch) {
       this.drawCanvas(sketch);
       // draw rocks and tails. not added as of now.
-      // this.drawRocksAndWaters(sketch);
+      this.drawRocksAndWaters(sketch);
       // drawing path for the frog
       this.drawPath(sketch);
       // draw head
@@ -226,7 +227,6 @@ export default {
           68: new Frog(1, 0), // 'd' key
         };
         if (keyCode in keys) {
-          // this.$emit("addCellToPath", keys[keyCode]);
           this.$emit("turn", keys[keyCode]);
         } else if (keyCode === 13) {
           this.$emit("navigatePath");
