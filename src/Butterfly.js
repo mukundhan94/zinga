@@ -1,5 +1,5 @@
 import { initialConfig } from './_initialConfig';
-import { getRandomDirection } from "./utils.js";
+import { getRandomDirection, getRandomInt } from "./utils.js";
 export default class Butterfly {
   constructor(x, y=x) {
     this.x = x;
@@ -11,17 +11,100 @@ export default class Butterfly {
        -2 -> Bottom
     **/
     this.facingAngle = 90;
+    this.flapTiming = 100;
     this.color = this.getRandomColor();
     this.flying = false;
     this.oldPath = {
       x: this.x,
       y: this.y
     };
+    this.movingPos = {
+      xpos: null,
+      ypos: null
+    };
+    this.facingAngle = 0;
+    this.dying = false;
+    this.lastMoments = 3000;
+    this.scale = 1;
+    this.resting = false;
+    this.facingDirection = 'top';
+    this.alive = true;
     Object.freeze(this.grid_size);
   }
 
   isPositionOdd() {
     return this.x % 2 === 0;
+  }
+
+  setMovingPos({
+    xpos,
+    ypos
+  }) {
+    this.movingPos = { xpos, ypos };
+  }
+
+  addMovingPos({
+    xpos, ypos
+  }) {
+    /**since relative position cannot be used for translated object.
+    // '-11': 'topLeft' |=> bottomLeft [-1,-1]
+    '-10': 'left' |=> left [-1,0]
+    // '-1-1': 'bottomLeft' |=> topLeft [-1,1] 
+    // '01': 'top' |=> bottom [0,-1]
+    // '00': 'center' |=> center [0,0]
+    // '0-1': 'bottom' |=> top [0,1]
+    // '11': 'topRight' |=> bottomRight [1,-1]
+          '10': 'right' |=> right [0,1]
+    // '1-1': 'bottomRight |=> topRight [1,1]**/
+    const mappedPosByOrigin = {
+        '-11': [-1,-1],
+        '-10': [-1,0],
+        '-1-1': [-1,1],
+        '01': [0,-1],
+        '00': [0,0],
+        '0-1': [0,1],
+        '11': [1,-1],
+        '10': [1,0],
+        '1-1': [1,1],
+    };
+    let [x, y] = mappedPosByOrigin[`${xpos}${ypos}`];
+    this.movingPos.xpos += x * 0.5;
+    this.movingPos.ypos += y * 0.5;
+  }
+
+
+  passAway() {
+    this.flying = false;
+    this.dying = true;
+  }
+
+  grow(scale) {
+    this.scale += scale;
+  }
+
+  shrink(scale) {
+    this.scale -= scale;
+    if (this.scale <= 0) {
+      this.alive = false;
+    }
+  }
+
+  flap() {
+    this.grow(0.01);
+    setTimeout(() => {
+      this.shrink(0.01);
+    }, this.flapTiming);
+  }
+
+  rotateTo(facingAngle, cellAspectRatio) {
+    // if (this.facingAngle !== facingAngle) {
+      this.facingAngle = facingAngle;
+      // this.facingAngle > facingAngle ? this.facingAngle -= 1 :  this.facingAngle += 1;
+    // }
+  }
+
+  getMovingPos() {
+    return this.movingPos;
   }
 
   getRandomColor() {
@@ -31,24 +114,44 @@ export default class Butterfly {
   
   fly() {
     this.flying = true;
-    const move = () => {
-      const [x, y] = getRandomDirection(-2, 2);
-        let direction =  {
-          x: this.x,
-          y: this.y
-        };
-        direction['x'] += x;
-        direction['y'] += y;
-        this.moveTo(direction);
-    };
-    move();
+    const flappingInterval = setInterval(() => {
+      if (this.flying) {
+        // && !this.resting
+        if (!this.resting) {
+          this.flap();
+        }
+      } else {
+        clearInterval(flappingInterval);
+      }
+    }, getRandomInt(150, 200));
+    this.flyTo(...getRandomDirection(-2, 2));
     const flyingInterval = setInterval(() => {
-      if (this.flying) { 
-        move();
+      if (this.flying) {
+        this.flyTo(...getRandomDirection(-2, 2));
       } else {
         clearInterval(flyingInterval);
       }
-    }, 1000);
+    }, 5000);
+  }
+
+  flyTo(x, y) {
+    let direction =  {
+      x: this.x,
+      y: this.y
+    };
+    direction['x'] += x;
+    direction['y'] += y;
+    // when not flying
+    if (x == 0 && y == 0) { 
+      this.resting = true;
+    } else {
+      this.resting = false;
+    }
+    this.moveTo(direction);
+  };
+
+  hasArrivedToPos({ x, y }) {
+    return (x == this.movingPos.xpos && y == this.movingPos.ypos);
   }
 
   moveTo({ x, y }) {
@@ -114,21 +217,37 @@ export default class Butterfly {
      * [-1 -1 , 0 -1 , 1 -1]
      */
     const anglesByRelativePos = {
-      '-11': 225,
-      '-10': 180,
-      '-1-1': 135,
-      '01': 90,
+      '-11': 315,
+      '-10': 270,
+      '-1-1': 225,
+      '01': 0,
       '00': 0,
-      '0-1': 270,
+      '0-1': 180,
       '11': 45,
-      '10': 0,
-      '1-1': 360
+      '10': 90,
+      '1-1': 135
     };
+
+    const directionByPosition = {
+      '-11': 'topLeft',
+      '-10': 'left',
+      '-1-1': 'bottomLeft',
+      '01': 'top',
+      '00': 'center',
+      '0-1': 'bottom',
+      '11': 'topRight',
+      '10': 'right',
+      '1-1': 'bottomRight'
+    };
+
     const { x_direction, y_direction } = direction;
-    /**if (anglesByRelativePos[`${x_direction}${y_direction}`]) {
-      return anglesByRelativePos[`${x_direction}${y_direction}`];
-    } */
-    return this.setFacingDirection(direction);
+    console.log(
+      `${x_direction}, ${y_direction}`,
+      anglesByRelativePos[`${x_direction}${y_direction}`],
+      directionByPosition[`${x_direction}${y_direction}`]
+    );
+    this.facingDirection = directionByPosition[`${x_direction}${y_direction}`];
+    return anglesByRelativePos[`${x_direction}${y_direction}`];
   }
 
   setFacingDirection(direction) {

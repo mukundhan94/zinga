@@ -128,7 +128,7 @@ export default {
   data() {
     return {};
   },
-  props: ["size", "head", "tail", "rocks", "prev_head", "path"],
+  props: [],
   methods: {
     initGraphics(sketch){
       zColor = new ZColor(sketch);

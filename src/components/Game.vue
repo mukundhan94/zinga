@@ -1,22 +1,19 @@
 <template>
   <div>
-    <!-- Level: {{ snakeLevel }} <br/>
-    Score: {{ score }} -->
     <v-grid v-bind="{
         butterflies,
         canvasResolution,
         cellAspectRatio,
         size: grid_size,
-        head,
+        frog_head,
         tail,
         rocks,
-        prev_head,
-        path
+        prev_frog_head,
+        path,
+        gridCenter
       }"
       v-on="{turn, addCellToPath, navigatePath}">
     </v-grid>
-    <!-- <button @click="reset">Restart</button> -->
-    <!-- <label v-if="gameIsOver" class="red">The game is over!</label> -->
   </div>
 </template>
 
@@ -27,19 +24,6 @@ import Frog from "../Frog.js";
 import Butterfly from "../Butterfly.js";
 import { gameConfig } from '../_config.js';
 
-/** const gameConfig = {
-  grid_size: 10,
-  head: initialFrogPosition,
-  direction: null,
-  tail: [],
-  gameIsOver: false,
-  rocks: [],
-  score: 1,
-  prev_head: initialFrogPosition,
-  path: [initialFrogPosition],
-  path_head: initialFrogPosition
-}; **/
-
 export default {
   components: {
     "v-grid": Grid
@@ -48,7 +32,7 @@ export default {
   mounted() {
     this.spawnRocks();
     this.spawnButterflies();
-    // setInterval(this.update, 500);
+    this.spawnSneakySnake();
   }, 
   computed: {
     gameStarted() {
@@ -57,47 +41,36 @@ export default {
     gameRunning() {
       return this.gameStarted && !this.gameIsOver;
     },
-    snakeLevel() {
-      return Math.floor(Math.sqrt(1 + this.score));
-    },
-    length() {
-      return this.score;
-    },
     cellAspectRatio() {
       return (this.canvasResolution / this.grid_size);
     },
+    gridCenter() {
+        return {
+          x: this.canvasResolution / 2,
+          y: this.canvasResolution / 2
+        };
+    },
     record() {
       return {
-        level: this.snakeLevel,
         score: this.score
       };
     }
   },
-
   methods: {
     turn(direction) {
-      const new_head = this.head.add(direction);
-      if (this.tail.length > 0) {
-        const first_tail_part = this.tail.slice(-1)[0];
-        if (new_head.isEqual(first_tail_part)) {
-          return;
-        }
-      }
-      if (this.rocksContainesCell(new_head)) {
+      const new_frog_head = this.frog_head.add(direction);
+      if (this.rocksContainesCell(new_frog_head)) {
         return;
       }
       this.direction = direction.clone();
       this.update();
     },
-
     pathContainesCell(cell) {
       return this.path.find(part => part.isEqual(cell))
     },
-
     rocksContainesCell(cell) {
       return this.rocks.find(part => part.isEqual(cell))
     },
-
     addCellToPath(direction) {
       const _newPathHead = this.path_head.add(direction);
       if (_newPathHead.isCellInsideGrid() && !this.pathContainesCell(_newPathHead)
@@ -106,41 +79,35 @@ export default {
         this.path_head = _newPathHead; 
       }
     },
-  
     move(direction) {
-      const new_head = this.head.add(direction);
-      // game over if bumped into a wall
+      const new_head = this.frog_head.add(direction);
+      // game over if frog bumped into a snake
       {
         if (!new_head.isBetween(new Frog(0), new Frog(this.grid_size))) {
-          // can be enabled if end game on frog hitting the walls
           // this.onGameOver();
           return;
         }
       }
-
       // actually move
       {
-        // this.tail.push(this.head);
-        // this.tail = this.tail.slice(-this.length);
-        this.prev_head = this.head.clone();
-        this.head = new_head;
+        this.prev_frog_head = this.frog_head.clone();
+        this.frog_head = new_head;
       }
-
-      // game over if ate own tail
-      {
-        if (this.tail.find(part => part.isEqual(this.head))) {
-          this.onGameOver();
-          return;
-        }
-      }
-
       // eat butterflies
       {
-        let f;
-        if ((f = this.butterflies.find(f => f.isEqual(this.head)))) {
-          this.score += 1;
-          let index = this.butterflies.indexOf(f);
-          this.butterflies.splice(index, 1);
+        let butterflies = this.frog_head.getButterfliesInRange(this.butterflies); 
+        if (butterflies.length) {
+          this.score += butterflies.length;
+          butterflies.forEach(b => {
+            let index = this.butterflies.indexOf(b);
+            if (!this.butterflies[index].alive) {
+              // let it die passaway slowly
+              this.butterflies[index].passAway();
+            } else {
+              // remove from array if its gone.
+              this.butterflies.splice(index, 1);
+            }
+          });
         }
       }
     },
@@ -148,7 +115,6 @@ export default {
       this.gameIsOver = true;
       this.$emit("game-over", this.record);
     },
-    
     spawnRocks() {
       while (this.rocks.length < this.rockSprinkleCount) {
         this.rocks.push(
@@ -157,6 +123,15 @@ export default {
             getRandomInt(0, this.grid_size)
           )
         );
+      }
+    },
+    spawnSneakySnake() {
+      // todo.
+      if (this.tail.length > 0) {
+        const first_tail_part = this.tail.slice(-1)[0];
+        if (new_head.isEqual(first_tail_part)) {
+          return;
+        }
       }
     },
     spawnButterflies() {
@@ -177,8 +152,8 @@ export default {
       let currentPath = 0;
       const pathNavigator = setInterval(() => {
         if (currentPath < pathLength) {
-          this.prev_head = this.head.clone();
-          this.head = paths[currentPath].clone();
+          this.prev_frog_head = this.frog_head.clone();
+          this.frog_head = paths[currentPath].clone();
           this.path.splice(0, 1);
           currentPath += 1;
         } else {
@@ -191,15 +166,10 @@ export default {
         this.move(this.direction);
       }
     },
-    reset() {
-      Object.assign(this.$data, getDefaultData());
-    }
   }
 };
 </script>
 
 <style scoped>
-.red {
-  color: red;
-}
+
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="center">
     <!-- <div><pre>size-{{size}}</pre></div><br/>
-    <div><pre>head-{{head}}</pre></div><br/>
+    <div><pre>frog_head-{{frog_head}}</pre></div><br/>
     <div><pre>tail-{{tail}}</pre></div><br/>
     <div><pre>rocks-{{rocks}}</pre></div><br/> -->
     <!-- <vue-p5 
@@ -23,8 +23,8 @@ import Frog from "../Frog.js";
 import Sprite from "../Sprite.js";
 import Butterfly from "../Butterfly.js";
 
+let frameCount = 0;
 let called = false;
-
 const throttle = (func, timeout) => {
   if (!called) {
     called = true;
@@ -35,14 +35,14 @@ const throttle = (func, timeout) => {
   }
 }
 
+/****************HELPERS****************/
+
+
 let  xpos, ypos; // Starting position of shape
 let  xspeed = 8; // Speed of the shape
 let  yspeed = 8; // Speed of the shape
 let  rotate = 0;
 let rock_rotate_angle = 0;
-let butterflyPaths = {
-
-};
 
 export default {
   components: {
@@ -54,14 +54,15 @@ export default {
   props: [
     "butterflies",
     "size",
-    "head",
+    "frog_head",
     "tail",
     "rocks",
-    "prev_head",
+    "prev_frog_head",
     "path", 
     "grid_size",
     "canvasResolution",
-    "cellAspectRatio"
+    "cellAspectRatio",
+    "gridCenter"
   ],
   methods: {
     drawCanvas(sketch) {
@@ -112,7 +113,7 @@ export default {
     },
     drawPath(sketch) {
       this.path.forEach(cellpath => {
-        if (!cellpath.isEqual(this.head)) {
+        if (!cellpath.isEqual(this.frog_head)) {
           const cell = this.gridToCanvas(sketch, cellpath);
           sketch.fill("orange");
           sketch.rect(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
@@ -121,52 +122,44 @@ export default {
     },
     drawButterFlies(sketch) {
       // draw butterflies
-      this.butterflies.forEach((b, index) => {
-        sketch.push();
-        const cell = this.gridToCanvas(sketch, b);
-        if (!butterflyPaths[`b${index}`]) {
-          butterflyPaths[`b${index}`] = {
-            x: b.x,
-            y: b.y,
+      this.butterflies.forEach((buffly, index) => {
+        // sketch.translate();
+        sketch.push(this.cellAspectRatio/2 *10);
+        const cell = this.gridToCanvas(sketch, buffly);
+        if (!buffly.getMovingPos().xpos) {
+          // setting initial canvas position.
+          buffly.setMovingPos({
             xpos: cell.center.x,
             ypos: cell.center.y
-          }
+          });
         }
-        const oldPath = butterflyPaths[`b${index}`];
         const {
           x_direction,
           y_direction,
           facingAngle
-        } = b.getMovingDirection(b.oldPath);
-        const { xpos, ypos } = butterflyPaths[`b${index}`];
-        if (!(cell.center.x == xpos && cell.center.y == ypos)) {
-          butterflyPaths[`b${index}`]['xpos'] = butterflyPaths[`b${index}`]['xpos'] + x_direction;
-          butterflyPaths[`b${index}`]['ypos'] = butterflyPaths[`b${index}`]['ypos'] + y_direction;
-          if (butterflyPaths[`b${index}`]['rotate'] !== facingAngle) {
-            if (!butterflyPaths[`b${index}`]['rotate']) {
-              const samePlace = b.getMovingDirection(b.oldPath);
-              butterflyPaths[`b${index}`]['rotate'] = samePlace.facingAngle;
+        } = buffly.getMovingDirection(buffly.oldPath);
+        if (buffly.alive) {
+          if (!buffly.dying) {
+            if (!buffly.hasArrivedToPos(cell.center)) {
+              buffly.addMovingPos({
+                xpos: x_direction,
+                ypos: y_direction
+              });
+              buffly.rotateTo(facingAngle, this.cellAspectRatio);
+            } else {
+              buffly.facingAngle = facingAngle;
             }
-            butterflyPaths[`b${index}`]['rotate'] = butterflyPaths[`b${index}`]['rotate'] > facingAngle ?
-            butterflyPaths[`b${index}`]['rotate'] -= (this.cellAspectRatio / 2) : 
-            butterflyPaths[`b${index}`]['rotate'] += (this.cellAspectRatio / 2);
+            sketch.scale(buffly.scale);
+            sketch.translate(buffly.movingPos.xpos, buffly.movingPos.ypos);
+          } else {
+            // simulate dying progress translate and scale to fade in the same place.
+            buffly.shrink(0.03);
+            sketch.translate(buffly.movingPos.xpos, buffly.movingPos.ypos);
+            sketch.scale(buffly.scale);
           }
-        } else {
-          butterflyPaths[`b${index}`] = {
-            x: b.x,
-            y: b.y,
-            xpos: cell.center.x,
-            ypos: cell.center.y
-          }
+            sketch.rotate(sketch.radians(buffly.facingAngle));
+            sketch.image(this[buffly.color], 0, 0, cell.size.x, cell.size.y);
         }
-        if ((butterflyPaths[`b${index}`]['xpos'] + butterflyPaths[`b${index}`]['ypos']) % 0.5) {
-          sketch.scale(0.6);
-        } else {
-          sketch.scale(0.6);
-        }
-        sketch.translate(butterflyPaths[`b${index}`]['xpos'],butterflyPaths[`b${index}`]['ypos']);
-        sketch.rotate(sketch.radians(butterflyPaths[`b${index}`]['rotate']));
-        sketch.image(this[b.color], 0, 0, cell.size.x, cell.size.y);
         sketch.pop();
       });
     },
@@ -174,14 +167,14 @@ export default {
       sketch.push();
       sketch.strokeWeight(1);
       sketch.fill("blue");
-      const cell = this.gridToCanvas(sketch, this.head);
-      const prevCell = this.gridToCanvas(sketch, this.prev_head);
+      const cell = this.gridToCanvas(sketch, this.frog_head);
+      const prevCell = this.gridToCanvas(sketch, this.prev_frog_head);
       const {
         x_direction,
         y_direction,
         facingAngle
-      } = this.head.getMovingDirection(this.prev_head);
-      if (this.head.isEqual(this.prev_head)) {
+      } = this.frog_head.getMovingDirection(this.prev_frog_head);
+      if (this.frog_head.isEqual(this.prev_frog_head)) {
         xpos = cell.center.x;
         ypos = cell.center.y;
       }
@@ -207,18 +200,26 @@ export default {
       sketch.pop();
     },
     draw(sketch) {
+      if (frameCount > 10000) {
+        frameCount = 0;
+      } else {
+        frameCount += 1;
+      }
       this.drawCanvas(sketch);
       // draw rocks and tails. not added as of now.
       this.drawRocksAndWaters(sketch);
       // drawing path for the frog
       this.drawPath(sketch);
-      // draw head
+      // draw frog_head
       this.drawCurrentFrogPosition(sketch);
       // draw butterflies
       this.drawButterFlies(sketch);
     },
 
     keypressed({ keyCode }) {
+      /**
+       * Throttle to wait for frog to jump and move.
+       */
       throttle(() => {
         const keys = {
           87: new Frog(0, -1), // 'w' key
@@ -228,8 +229,6 @@ export default {
         };
         if (keyCode in keys) {
           this.$emit("turn", keys[keyCode]);
-        } else if (keyCode === 13) {
-          this.$emit("navigatePath");
         }
       }, 200);
     },
@@ -253,7 +252,6 @@ export default {
 };
 
 </script>
-
 <style lang="css" scoped>
   .center {
     display: flex;

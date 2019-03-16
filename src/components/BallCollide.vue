@@ -83,7 +83,7 @@ export default {
   data() {
     return {};
   },
-  props: ["size", "head", "tail", "rocks", "prev_head", "path"],
+  props: ["size", "frog_head", "tail", "rocks", "prev_frog_head", "path"],
   methods: {
     setup(sketch) {
       sketch.createCanvas(720, 400);

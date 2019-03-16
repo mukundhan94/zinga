@@ -12,7 +12,7 @@ export const getRandomDirection = () => {
       [1, 1]
     ],
     [
-      [-1, 1],
+      [-1, 0],
       [0, 0],
       [1, 0]
     ],
@@ -23,9 +23,9 @@ export const getRandomDirection = () => {
     ]
   ];
   /**
-   * [00 ,01 , 02]
-   * [10 ,11 , 12]
-   * [20 ,21 , 22]
+   * [-1 1 ,  0 1 , 1 1]
+   * [-1 0 ,  0 0 , 0 1]
+   * [-1-1 , -1 0 , 1- 1]
    */
   const direction = {
     topLeft: relativePos[0][0],
@@ -38,6 +38,5 @@ export const getRandomDirection = () => {
     bottom: relativePos[2][1],
     bottomRight: relativePos[2][2]
   }
-
   return relativePos[getRandomInt(0, 3)][getRandomInt(0, 3)];
 }

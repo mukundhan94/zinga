@@ -36,6 +36,30 @@ export default class Frog {
     return new Frog(this.x, this.y);
   }
 
+  between(pos, min, max) {
+    return pos >= min && pos <=max;
+  }
+
+  inRange({x, y, movingPos}) {
+    const rangePerimeter = .1;
+    const inRange =
+    this.between(
+      x,
+      this.x - rangePerimeter,
+      this.x + rangePerimeter
+    ) &&
+    this.between(
+      y,
+      this.y - rangePerimeter,
+      this.y + rangePerimeter
+    );
+    return inRange;
+  }
+
+  getButterfliesInRange(butterflies = []) {
+    return butterflies.filter(f => this.inRange(f));
+  }
+
   getMovingDirection({x,y}) {
     let direction =  {
       x_direction: this.x > x ? 1 : this.x < x ? -1 : 0,
