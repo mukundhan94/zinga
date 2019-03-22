@@ -23,6 +23,12 @@ import Frog from "../Frog.js";
 import Sprite from "../Sprite.js";
 import Butterfly from "../Butterfly.js";
 
+const snakeSprites = {
+  head: '../assets/snake/redHeadStaight.png',
+  body: '../assets/snake/redBodyStraight.png',
+  tail: '../assets/snake/redTail.png'
+};
+
 let frameCount = 0;
 let called = false;
 const throttle = (func, timeout) => {
@@ -62,7 +68,8 @@ export default {
     "grid_size",
     "canvasResolution",
     "cellAspectRatio",
-    "gridCenter"
+    "gridCenter",
+    "snake"
   ],
   methods: {
     drawCanvas(sketch) {
@@ -87,6 +94,12 @@ export default {
       this.blue = sketch.loadImage("../assets/butterfly_blue.png");
       this.pink = sketch.loadImage("../assets/butterfly_pink.png");
       this.red = sketch.loadImage("../assets/butterfly_red.png");
+      let key;
+      console.log('snakeSprites', snakeSprites);
+      for(key in snakeSprites) {
+        console.log('snakeSprites', snakeSprites);
+        this[`S${key}`] = sketch.loadImage(snakeSprites[key]);
+      }
     },
     drawRocksAndWaters(sketch) {
       // draw rocks
@@ -101,15 +114,6 @@ export default {
         rock_rotate_angle += 0.1;
         sketch.pop();
       });
-      sketch.push();
-      // draw tail
-      sketch.strokeWeight(1);
-      sketch.fill("lightblue");
-      this.tail.forEach(part => {
-        const cell = this.gridToCanvas(sketch, part);
-        sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
-      });
-      sketch.pop();
     },
     drawPath(sketch) {
       this.path.forEach(cellpath => {
@@ -163,6 +167,21 @@ export default {
         sketch.pop();
       });
     },
+    drawSneakySnake(sketch) {
+      const bodyLength = this.snake.length;
+      sketch.push();
+      // draw tail  
+      sketch.strokeWeight(1);
+      sketch.fill("lightblue");
+      this.snake.forEach((sb, index) => {
+        sb.setBodyLength(bodyLength)
+        sb.setBodyPosition(index);
+        const cell = this.gridToCanvas(sketch, sb);
+        sb.drawSketch(sketch, cell, this);
+        // sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
+      });
+      sketch.pop();
+    },
     drawCurrentFrogPosition(sketch) {
       sketch.push();
       sketch.strokeWeight(1);
@@ -214,21 +233,32 @@ export default {
       this.drawCurrentFrogPosition(sketch);
       // draw butterflies
       this.drawButterFlies(sketch);
+      // draw sneakySnake
+      this.drawSneakySnake(sketch);
     },
 
     keypressed({ keyCode }) {
-      /**
-       * Throttle to wait for frog to jump and move.
-       */
-      throttle(() => {
-        const keys = {
+      console.log('keyCode', keyCode);
+      const snakeDirectionKeys = {
           87: new Frog(0, -1), // 'w' key
           65: new Frog(-1, 0), // 'a' key
           83: new Frog(0, 1), // 's' key
           68: new Frog(1, 0), // 'd' key
-        };
-        if (keyCode in keys) {
-          this.$emit("turn", keys[keyCode]);
+      };
+      const frogDirectionKeys = {
+          38: new Frog(0, -1), // up arrow key
+          37: new Frog(-1, 0), // left arrow key
+          40: new Frog(0, 1), // down arrow key
+          39: new Frog(1, 0), // right arrow key
+      };
+      /**
+       * Throttle to wait for frog to jump and move.
+       */
+      throttle(() => {
+        if (keyCode in frogDirectionKeys) {
+          this.$emit("turnFrog", frogDirectionKeys[keyCode]);
+        } else if (keyCode in snakeDirectionKeys) {
+          this.$emit("turnSnake", frogDirectionKeys[keyCode]);
         }
       }, 200);
     },

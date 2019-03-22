@@ -241,11 +241,12 @@ export default class Butterfly {
     };
 
     const { x_direction, y_direction } = direction;
-    console.log(
+    /**
+     * console.log(
       `${x_direction}, ${y_direction}`,
       anglesByRelativePos[`${x_direction}${y_direction}`],
       directionByPosition[`${x_direction}${y_direction}`]
-    );
+    );*/
     this.facingDirection = directionByPosition[`${x_direction}${y_direction}`];
     return anglesByRelativePos[`${x_direction}${y_direction}`];
   }

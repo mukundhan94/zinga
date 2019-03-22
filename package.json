@@ -1,5 +1,5 @@
 {
-  "name": "vue-p5-snake",
+  "name": "frog_zinga",
   "version": "1.0.0",
   "description": "Frog written with vue and vue-p5",
   "private": true,
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kinrany/vue-p5-snake.git"
+    "url": "git+https://github.com/mukundhansampath/frog_zinga.git"
   },
   "keywords": [
     "vue",
@@ -20,9 +20,9 @@
   "author": "Ruslan Fadeev",
   "license": "LGPL-2.1",
   "bugs": {
-    "url": "https://github.com/kinrany/vue-p5-snake/issues"
+    "url": "https://github.com/mukundhansampath/frog_zinga/issues"
   },
-  "homepage": "https://github.com/kinrany/vue-p5-snake#readme",
+  "homepage": "https://github.com/mukundhansampath/frog_zinga#readme",
   "dependencies": {
     "vue": "^2.5.17",
     "vue-p5": "^0.7.1",

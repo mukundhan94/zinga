@@ -10,9 +10,11 @@
         rocks,
         prev_frog_head,
         path,
-        gridCenter
+        gridCenter,
+        snake,
+        prev_snake_head
       }"
-      v-on="{turn, addCellToPath, navigatePath}">
+      v-on="{turnFrog, turnSnake, addCellToPath, navigatePath}">
     </v-grid>
   </div>
 </template>
@@ -22,6 +24,8 @@ import Grid from "./Grid.vue";
 import { getRandomInt } from "../utils.js";
 import Frog from "../Frog.js";
 import Butterfly from "../Butterfly.js";
+import Sprite from "../Sprite.js";
+
 import { gameConfig } from '../_config.js';
 
 export default {
@@ -30,13 +34,14 @@ export default {
   },
   data: () => gameConfig, 
   mounted() {
+    this.growSnakeByLength();
     this.spawnRocks();
     this.spawnButterflies();
     this.spawnSneakySnake();
   }, 
   computed: {
     gameStarted() {
-      return this.direction !== null;
+      return this.frogDirection !== null;
     },
     gameRunning() {
       return this.gameStarted && !this.gameIsOver;
@@ -57,13 +62,39 @@ export default {
     }
   },
   methods: {
-    turn(direction) {
+    growSnakeByLength() {
+      this.snake = [
+        ...this.snake,
+        ...new Array(this.snakeBodyLength).fill(this.snake_head).map((skBody, index) => {
+          skBody = skBody.add({
+            x: 0, 
+            y: index + 1
+          });
+          return skBody;
+        })
+      ];
+    },
+    turnFrog(direction) {
       const new_frog_head = this.frog_head.add(direction);
+      if (!new_frog_head.isCellInsideGrid()) {
+        return;
+      }
       if (this.rocksContainesCell(new_frog_head)) {
         return;
       }
-      this.direction = direction.clone();
-      this.update();
+      this.frogDirection = direction.clone();
+      this.updateFrog();
+    },
+    turnSnake(direction) {
+      const new_snake_head = this.snake[0].add(direction);
+      if (!new_snake_head.isCellInsideGrid()) {
+        return;
+      }
+      if (this.rocksContainesCell(new_snake_head)) {
+        return;
+      }
+      this.snakeDirection = direction.clone();
+      this.updateSnake();
     },
     pathContainesCell(cell) {
       return this.path.find(part => part.isEqual(cell))
@@ -79,7 +110,14 @@ export default {
         this.path_head = _newPathHead; 
       }
     },
-    move(direction) {
+    moveSnake(direction) {
+      const new_snake_head = this.snake[0].add(direction);
+      this.snake.pop();
+      this.snake = this.snake.reverse();
+      this.snake.push(new_snake_head);
+      this.snake = this.snake.reverse();
+    },
+    moveFrog(direction) {
       const new_head = this.frog_head.add(direction);
       // game over if frog bumped into a snake
       {
@@ -88,7 +126,7 @@ export default {
           return;
         }
       }
-      // actually move
+      // actually moveFrog
       {
         this.prev_frog_head = this.frog_head.clone();
         this.frog_head = new_head;
@@ -116,23 +154,26 @@ export default {
       this.$emit("game-over", this.record);
     },
     spawnRocks() {
+      const occupiedBySneakySnake = this.snake;
+      let occupied = [this.frog_head, ...occupiedBySneakySnake];
       while (this.rocks.length < this.rockSprinkleCount) {
-        this.rocks.push(
-          new Frog(
+        const rock = new Sprite(
             getRandomInt(0, this.grid_size),
             getRandomInt(0, this.grid_size)
-          )
         );
+        if (!occupied.find(part => part.isEqual(rock))) {
+          this.rocks.push(rock);
+        }
       }
     },
     spawnSneakySnake() {
       // todo.
-      if (this.tail.length > 0) {
-        const first_tail_part = this.tail.slice(-1)[0];
-        if (new_head.isEqual(first_tail_part)) {
-          return;
-        }
-      }
+      // if (this.tail.length > 0) {
+      //   const first_tail_part = this.tail.slice(-1)[0];
+      //   if (new_head.isEqual(first_tail_part)) {
+      //     return;
+      //   }
+      // }
     },
     spawnButterflies() {
       while (this.butterflies.length < this.butterflyCount) {
@@ -161,9 +202,12 @@ export default {
         }
       }, 500);
     },
-    update() {
+    updateSnake() {
+      this.moveSnake(this.snakeDirection);
+    },
+    updateFrog() {
       if (this.gameRunning) {
-        this.move(this.direction);
+        this.moveFrog(this.frogDirection);
       }
     },
   }
