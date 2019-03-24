@@ -29,6 +29,13 @@ const snakeSprites = {
   tail: '../assets/snake/redTail.png'
 };
 
+const directions = {
+  up: new Sprite(0, -1), // up arrow key
+  left: new Sprite(-1, 0), // left arrow key
+  down: new Sprite(0, 1), // down arrow key
+  right: new Sprite(1, 0), // right arrow key
+};
+
 let frameCount = 0;
 let called = false;
 const throttle = (func, timeout) => {
@@ -61,7 +68,6 @@ export default {
     "butterflies",
     "size",
     "frog_head",
-    "tail",
     "rocks",
     "prev_frog_head",
     "path", 
@@ -94,12 +100,11 @@ export default {
       this.blue = sketch.loadImage("../assets/butterfly_blue.png");
       this.pink = sketch.loadImage("../assets/butterfly_pink.png");
       this.red = sketch.loadImage("../assets/butterfly_red.png");
-      let key;
-      console.log('snakeSprites', snakeSprites);
-      for(key in snakeSprites) {
-        console.log('snakeSprites', snakeSprites);
-        this[`S${key}`] = sketch.loadImage(snakeSprites[key]);
-      }
+      this.head = sketch.loadImage("../assets/snake/redHeadStaight.png");
+      this.body = sketch.loadImage("../assets/snake/redBodyStraight.png");
+      this.tail = sketch.loadImage("../assets/snake/redTail.png");
+      this.tongue = sketch.loadImage("../assets/snake/redTongue.png");
+      this.twistedBody = sketch.loadImage("../assets/snake/redBodyTurn.png");
     },
     drawRocksAndWaters(sketch) {
       // draw rocks
@@ -162,25 +167,18 @@ export default {
             sketch.scale(buffly.scale);
           }
             sketch.rotate(sketch.radians(buffly.facingAngle));
-            sketch.image(this[buffly.color], 0, 0, cell.size.x, cell.size.y);
+            sketch.image(this[buffly.color], 0, 0, cell.size.x *.6, cell.size.y *.6);
         }
         sketch.pop();
       });
     },
     drawSneakySnake(sketch) {
-      const bodyLength = this.snake.length;
-      sketch.push();
-      // draw tail  
-      sketch.strokeWeight(1);
-      sketch.fill("lightblue");
       this.snake.forEach((sb, index) => {
-        sb.setBodyLength(bodyLength)
-        sb.setBodyPosition(index);
         const cell = this.gridToCanvas(sketch, sb);
-        sb.drawSketch(sketch, cell, this);
-        // sketch.ellipse(cell.center.x, cell.center.y, cell.size.x, cell.size.y);
+        sketch.push();
+        sb.drawSketch(sketch, cell, this, index);
+        sketch.pop();
       });
-      sketch.pop();
     },
     drawCurrentFrogPosition(sketch) {
       sketch.push();
@@ -210,12 +208,13 @@ export default {
       }
       if (rotate !== facingAngle) {
         rotate = rotate > facingAngle ?
-         rotate -= (this.cellAspectRatio / 2) : 
-         rotate += (this.cellAspectRatio / 2);
+         rotate -= 10: 
+         rotate += 10;
       }
+      console.log('facingAngle', rotate, facingAngle);
       sketch.translate(xpos, ypos);
       sketch.rotate(sketch.radians(rotate));
-      sketch.image(this.frogImage, 0, 0, cell.size.x, cell.size.y);
+      sketch.image(this.frogImage, 0, 0, cell.size.x * 1.2, cell.size.y * 1.2);
       sketch.pop();
     },
     draw(sketch) {
@@ -239,26 +238,26 @@ export default {
 
     keypressed({ keyCode }) {
       console.log('keyCode', keyCode);
-      const snakeDirectionKeys = {
-          87: new Frog(0, -1), // 'w' key
-          65: new Frog(-1, 0), // 'a' key
-          83: new Frog(0, 1), // 's' key
-          68: new Frog(1, 0), // 'd' key
-      };
       const frogDirectionKeys = {
-          38: new Frog(0, -1), // up arrow key
-          37: new Frog(-1, 0), // left arrow key
-          40: new Frog(0, 1), // down arrow key
-          39: new Frog(1, 0), // right arrow key
+          87: new Sprite(0, -1), // 'w' key
+          65: new Sprite(-1, 0), // 'a' key
+          83: new Sprite(0, 1), // 's' key
+          68: new Sprite(1, 0), // 'd' key
+      };
+      const snakeDirectionKeys = {
+          38: new Sprite(0, -1), // up arrow key
+          37: new Sprite(-1, 0), // left arrow key
+          40: new Sprite(0, 1), // down arrow key
+          39: new Sprite(1, 0), // right arrow key
       };
       /**
-       * Throttle to wait for frog to jump and move.
+       * Throttle to wait for frog/snake to move to jump and move.
        */
       throttle(() => {
         if (keyCode in frogDirectionKeys) {
           this.$emit("turnFrog", frogDirectionKeys[keyCode]);
         } else if (keyCode in snakeDirectionKeys) {
-          this.$emit("turnSnake", frogDirectionKeys[keyCode]);
+          this.$emit("turnSnake", snakeDirectionKeys[keyCode]);
         }
       }, 200);
     },

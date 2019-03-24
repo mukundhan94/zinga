@@ -73,6 +73,7 @@ export default {
           return skBody;
         })
       ];
+      this.updateSnakePath();
     },
     turnFrog(direction) {
       const new_frog_head = this.frog_head.add(direction);
@@ -93,7 +94,7 @@ export default {
       if (this.rocksContainesCell(new_snake_head)) {
         return;
       }
-      this.snakeDirection = direction.clone();
+      this.snakeDirection = direction.clone ? direction.clone() : direction;
       this.updateSnake();
     },
     pathContainesCell(cell) {
@@ -110,12 +111,29 @@ export default {
         this.path_head = _newPathHead; 
       }
     },
+    updateSnakePath() {
+      const bodyLength = this.snake.length;
+      this.snake = this.snake.map((sb, index) => {
+        const frontPos = index > 0 ? this.snake[index -1] : this.snake[index];
+        const behindPos = index < (bodyLength -1) ?  this.snake[index + 1] : this.snake[index];
+        sb.setNxtfrontPos(frontPos, behindPos);
+        sb.setBodyLength(bodyLength)
+        sb.setBodyPosition(index);
+        // only after setting the diff in angle if head or body at position.
+        sb.setFacingAngleWithMovingPos();
+        return sb;
+      });
+    },
     moveSnake(direction) {
       const new_snake_head = this.snake[0].add(direction);
+      if (this.rocksContainesCell(new_snake_head) || !new_snake_head.isCellInsideGrid()) {
+        return;
+      }
       this.snake.pop();
       this.snake = this.snake.reverse();
       this.snake.push(new_snake_head);
       this.snake = this.snake.reverse();
+      this.updateSnakePath();
     },
     moveFrog(direction) {
       const new_head = this.frog_head.add(direction);
@@ -167,13 +185,9 @@ export default {
       }
     },
     spawnSneakySnake() {
-      // todo.
-      // if (this.tail.length > 0) {
-      //   const first_tail_part = this.tail.slice(-1)[0];
-      //   if (new_head.isEqual(first_tail_part)) {
-      //     return;
-      //   }
-      // }
+      setInterval(() => {
+        this.updateSnake();
+      }, 500);
     },
     spawnButterflies() {
       while (this.butterflies.length < this.butterflyCount) {
